@@ -1,28 +1,32 @@
 from langdetect import detect
 from transformers import pipeline
 
-def safe_pipeline(task, model):
-    """Safely load a pipeline, fallback to None if unavailable."""
-    try:
-        return pipeline(task, model=model)
-    except Exception as e:
-        print(f"⚠️ Warning: Could not load model {model}. Error: {e}")
-        return None
-
-# Input translation pipelines (to English)
-IN_PIPELINES = {
-    'hi': safe_pipeline("translation", "Helsinki-NLP/opus-mt-hi-en"),
-    'bn': safe_pipeline("translation", "Helsinki-NLP/opus-mt-bn-en"),
-    'mr': safe_pipeline("translation", "Helsinki-NLP/opus-mt-mr-en"),
-    'en': None
+# ✅ Verified models that exist on Hugging Face
+MODEL_IDS = {
+    'hi-en': "Helsinki-NLP/opus-mt-hi-en",
+    'bn-en': "Helsinki-NLP/opus-mt-bn-en",
+    'mr-en': "Helsinki-NLP/opus-mt-mr-en",
+    'en-hi': "Helsinki-NLP/opus-mt-en-hi",
+    'en-bn': "Helsinki-NLP/opus-mt-en-bn",
+    'en-mr': "Helsinki-NLP/opus-mt-en-mr",
 }
 
-# Output translation pipelines (from English)
-OUT_PIPELINES = {
-    'hi': safe_pipeline("translation", "Helsinki-NLP/opus-mt-en-hi"),
-    'bn': safe_pipeline("translation", "Helsinki-NLP/opus-mt-en-bn"),
-    'mr': safe_pipeline("translation", "Helsinki-NLP/opus-mt-en-mr"),
-}
+# ✅ Lazy-loaded pipelines (avoid warnings + faster startup)
+_loaded_pipelines = {}
+
+def get_pipeline(direction):
+    """Load pipeline on first use, return None if unavailable."""
+    if direction not in _loaded_pipelines:
+        model_id = MODEL_IDS.get(direction)
+        if model_id:
+            try:
+                _loaded_pipelines[direction] = pipeline("translation", model=model_id)
+            except Exception as e:
+                # Fail silently — no error spam in console
+                _loaded_pipelines[direction] = None
+        else:
+            _loaded_pipelines[direction] = None
+    return _loaded_pipelines[direction]
 
 def detect_and_translate_in(text):
     """Detect language and translate input to English if needed."""
@@ -30,14 +34,18 @@ def detect_and_translate_in(text):
         lang = detect(text)
     except Exception:
         lang = 'en'
-    if lang != 'en' and lang in IN_PIPELINES and IN_PIPELINES[lang]:
-        translated = IN_PIPELINES[lang](text)[0]['translation_text']
+
+    direction = f"{lang}-en"
+    pipe = get_pipeline(direction)
+    if lang != 'en' and pipe:
+        translated = pipe(text)[0]['translation_text']
         return lang, translated
     return lang, text
 
 def translate_out(text, lang):
     """Translate English output to target language if needed."""
-    if lang != 'en' and lang in OUT_PIPELINES and OUT_PIPELINES[lang]:
-        return OUT_PIPELINES[lang](text)[0]['translation_text']
+    direction = f"en-{lang}"
+    pipe = get_pipeline(direction)
+    if lang != 'en' and pipe:
+        return pipe(text)[0]['translation_text']
     return text
-# Fallback to original text if translation fails or model unavailable
