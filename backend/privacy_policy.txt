@@ -1,0 +1,7 @@
+Privacy Policy
+
+- We collect and process user queries, chat logs, and uploaded documents solely for the purpose of providing and improving the chatbot service.
+- All data is stored securely and retained for a limited period (default: 30 days), after which it is automatically deleted.
+- No personal or sensitive information should be submitted to the chatbot.
+- Users can request deletion of their data by contacting the administrator.
+- The system is designed to comply with applicable privacy regulations (e.g., GDPR).
