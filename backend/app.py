@@ -17,6 +17,11 @@ app.secret_key = 'your_secret_key'  # Change for production
 UPLOAD_FOLDER = '/tmp/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# ✅ Health check / root route
+@app.route("/", methods=['GET'])
+def home():
+    return jsonify({"status": "Backend is running 🚀"}), 200
+
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files:
